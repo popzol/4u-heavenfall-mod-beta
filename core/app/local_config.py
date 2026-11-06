@@ -13,6 +13,8 @@ from pathlib import Path
 
 FILE_NAME = "local.ini"
 CONFIG_ENV = "MH4U_LOCAL_CONFIG"
+# The emulator's user folder, for an install the program cannot find by itself (an AppImage, a portable copy...).
+EMULATOR_DIR_ENV = "HEAVENFALL_EMULATOR_DIR"
 SECTION = "paths"
 CHECKOUT = Path(__file__).resolve().parents[2]
 
@@ -29,7 +31,7 @@ KEYS = {
     "ghidra": "Ghidra install folder (the one with support/analyzeHeadless.bat)",
     "ghidra_projects": "folder of the Ghidra projects (default <work_dir>/ghidra)",
     "jdk": "JDK 21 folder, used as JAVA_HOME for Ghidra",
-    "emulator_dir": "Azahar/Citra user folder (default %APPDATA%/Azahar)",
+    "emulator_dir": "Azahar/Citra user folder (default $HEAVENFALL_EMULATOR_DIR, else %APPDATA%/Azahar)",
     "work_dir": "derived inputs and scratch (default work/ in the main checkout)",
     "beta_repo": "Heavenfall Beta's repository (tools/release/export_edition.py; default ../4u-heavenfall-mod-beta "
                  "beside the main checkout)",
@@ -64,8 +66,11 @@ class LocalConfig:
             return self.main / "work"
         if key == "ghidra_projects":
             return self.work_dir / "ghidra"
-        if key == "emulator_dir" and os.environ.get("APPDATA"):
-            return Path(os.environ["APPDATA"]) / "Azahar"
+        if key == "emulator_dir":
+            if os.environ.get(EMULATOR_DIR_ENV):
+                return Path(os.environ[EMULATOR_DIR_ENV]).expanduser()
+            if os.environ.get("APPDATA"):
+                return Path(os.environ["APPDATA"]) / "Azahar"
         return None
 
     @property

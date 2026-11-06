@@ -9,6 +9,7 @@ from collections.abc import Collection, Iterator, Mapping
 from pathlib import Path
 from typing import Protocol
 
+from core.app.local_config import EMULATOR_DIR_ENV
 from core.game.files.arc import parse_arc, write_arc
 from core.interface.hud.hint import GLYPH_ARCS, add_glyph, add_hint
 from core.game.files.gui.lanl import LANL_TYPE_HASH, parse_lanl
@@ -196,10 +197,20 @@ def hud_files(rom: GameFiles, factor: float,
 
 
 def emulator_folders() -> list[Path]:
-    """User folders where Citra and its forks keep their data (Windows, Linux, macOS)."""
+    """User folders where Citra and its forks keep their data (Windows, Linux, macOS).
+
+    If the environment variable HEAVENFALL_EMULATOR_DIR is set, that folder is the only one offered (an AppImage,
+    a portable copy, any place the program cannot guess). Otherwise: the usual folders of each system, and on
+    Linux the data folders of Flatpak installs (~/.var/app/<app id>/data/<emulator>)."""
+    override = os.environ.get(EMULATOR_DIR_ENV)
+    if override:
+        return [Path(override).expanduser()]
     bases = [Path(os.environ[var]) for var in ("APPDATA", "XDG_DATA_HOME") if os.environ.get(var)]
     bases += [Path.home() / ".local" / "share", Path.home() / "Library" / "Application Support"]
-    return [base / name for base in bases for name in EMULATORS]
+    folders = [base / name for base in bases for name in EMULATORS]
+    flatpak = Path.home() / ".var" / "app"
+    folders += [path for name in EMULATORS for path in sorted(flatpak.glob(f"*/data/{name}"))]
+    return folders
 
 
 def find_update() -> Path | None:
